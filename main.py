@@ -427,9 +427,29 @@ def display_price_chart(indicators, price_history):
     colors = ['green' if price_history['Close'].iloc[i] >= price_history['Open'].iloc[i] else 'red' 
              for i in range(len(price_history))]
 
-    # Add volume bars
+    # Add volume bars with color
     fig.add_trace(go.Bar(
         x=indicators.index,
+        y=indicators['Volume'],
+        name='Volume',
+        marker_color=colors
+    ), row=2, col=1)
+
+    # Add 3-day average line
+    fig.add_trace(go.Scatter(
+        x=indicators.index,
+        y=indicators['Volume_3D_Avg'],
+        name='3-Day Avg Volume',
+        line=dict(color='orange', width=1)
+    ), row=2, col=1)
+
+    # Update layout
+    fig.update_layout(
+        yaxis_title='Price',
+        yaxis2_title='Volume',
+        xaxis_rangeslider_visible=False,
+        height=800
+    )
         y=indicators['Volume'],
         name='Volume',
         marker_color=colors
