@@ -432,7 +432,8 @@ def display_price_chart(indicators, price_history):
         x=indicators.index,
         y=indicators['Volume'],
         name='Volume',
-        marker_color=colors
+        marker_color=colors,
+        hovertemplate='Volume: %{y:,.0f}<extra></extra>'  # Format hover text
     ), row=2, col=1)
 
     # Add 3-day average line
@@ -440,16 +441,19 @@ def display_price_chart(indicators, price_history):
         x=indicators.index,
         y=indicators['Volume_3D_Avg'],
         name='3-Day Avg Volume',
-        line=dict(color='orange', width=1)
+        line=dict(color='orange', width=1),
+        hovertemplate='3-Day Avg: %{y:,.0f}<extra></extra>'  # Format hover text
     ), row=2, col=1)
 
     # Update layout
     fig.update_layout(
-        yaxis_title='Price',
         yaxis2_title='Volume',
-        xaxis_rangeslider_visible=False,
+        showlegend=True,
         height=800
     )
+
+    # Format y-axis to show volume in millions
+    fig.update_yaxes(tickformat='.2f', ticksuffix='M', row=2, col=1)
         y=indicators['Volume'],
         name='Volume',
         marker_color=colors
