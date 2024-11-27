@@ -1,0 +1,95 @@
+.stock-metric {
+    font-size: 16px;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 5px;
+}
+
+.positive {
+    color: #0ECB81;
+    font-weight: bold;
+}
+
+.negative {
+    color: #FF4B4B;
+    font-weight: bold;
+}
+
+.metric-card {
+    background-color: #ffffff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stock-table {
+    font-size: 14px;
+}
+
+.header-style {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+/* Add hover effect for clickable rows */
+.row-clickable:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+}
+
+/* Loading state styling */
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Chart container styling */
+.chart-container {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 10px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Technical indicators styling */
+.indicator-card {
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Back button styling */
+.back-button {
+    margin-bottom: 20px;
+}
+
+/* Navigation button styling */
+.stButton button {
+    font-weight: bold;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.stButton button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* Active navigation button states */
+.active-button-green {
+    background-color: #0ECB81 !important;
+    color: white !important;
+}
+
+.active-button-red {
+    background-color: #FF4B4B !important;
+    color: white !important;
+}
