@@ -454,43 +454,8 @@ def display_price_chart(indicators, price_history):
 
     # Format y-axis to show volume in millions
     fig.update_yaxes(tickformat='.2f', ticksuffix='M', row=2, col=1)
-        y=indicators['Volume'],
-        name='Volume',
-        marker_color=colors
-    ), row=2, col=1)
 
-    # Add 3-day average line
-    fig.add_trace(go.Scatter(
-        x=indicators.index,
-        y=indicators['Volume_3D_Avg'],
-        name='3-Day Avg Volume',
-        line=dict(color='orange', width=1)
-    ), row=2, col=1)
-
-    # Update layout
-    fig.update_layout(
-        title='Price and Volume Analysis',
-        yaxis_title='Price',
-        yaxis2_title='Volume',
-        xaxis_rangeslider_visible=False,
-        height=800,
-        template='plotly_white'
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Display volume analysis below chart
-    current_vol = indicators['Volume'].iloc[-1]
-    avg_vol = indicators['Volume_3D_Avg'].iloc[-1]
-    vol_ratio = (current_vol / avg_vol - 1) * 100
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Current Volume", format_number(current_vol, is_volume=True))
-    with col2:
-        st.metric("3-Day Average", format_number(avg_vol, is_volume=True))
-    with col3:
-        st.metric("Volume vs Average", f"{vol_ratio:+.1f}%")
+    return fig
 
 def display_technical_indicators(indicators):
     """Display technical indicators with charts"""
