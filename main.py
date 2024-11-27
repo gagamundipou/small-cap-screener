@@ -315,7 +315,7 @@ def display_technical_analysis(indicators, price_history, info):
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Current Volume", format_number(current_vol, is_volume=True))  # is_volume=True is sufficient
+            st.metric("Current Volume", format_number(current_vol, is_volume=True, use_compact=True))
         with col2:
             st.metric("3-Day Average", format_number(avg_vol, is_volume=True))
         with col3:
