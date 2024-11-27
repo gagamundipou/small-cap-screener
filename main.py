@@ -432,109 +432,84 @@ def display_price_chart(indicators, price_history):
         x=indicators.index,
         y=indicators['Volume'],
         name='Volume',
-        marker_color=colors,
-        hovertemplate='Volume: %{y:,.0f}<extra></extra>'  # Format hover text
+        marker_color=colors
     ), row=2, col=1)
 
-    # Add 3-day average line
-    fig.add_trace(go.Scatter(
-        x=indicators.index,
-        y=indicators['Volume_3D_Avg'],
-        name='3-Day Avg Volume',
-        line=dict(color='orange', width=1),
-        hovertemplate='3-Day Avg: %{y:,.0f}<extra></extra>'  # Format hover text
-    ), row=2, col=1)
-
-    # Update layout
+    # Format axes and layout
     fig.update_layout(
+        title='Price and Volume Analysis',
+        yaxis_title='Price',
         yaxis2_title='Volume',
-        showlegend=True,
-        height=800
+        xaxis_rangeslider_visible=False,
+        height=800,
+        showlegend=True
     )
 
-    # Format y-axis to show volume in millions
-    fig.update_yaxes(tickformat='.2f', ticksuffix='M', row=2, col=1)
-
-    return fig
+    # Format volume axis to show in millions
+    fig.update_yaxes(title_text="Volume (M)", tickformat='.2f', ticksuffix='M', row=2, col=1)
+    
+    st.plotly_chart(fig, use_container_width=True)
 
 def display_technical_indicators(indicators):
-    """Display technical indicators with charts"""
-    # Format current values
-    rsi = indicators['RSI'].iloc[-1]
-    macd = indicators['MACD'].iloc[-1]
-    signal = indicators['Signal'].iloc[-1]
-    
-    # Display current values
+    """Display technical indicators with improved formatting"""
     col1, col2, col3 = st.columns(3)
+    
     with col1:
-        st.metric("RSI", f"{rsi:.2f}")
+        st.metric("RSI (14)", f"{indicators['RSI'].iloc[-1]:.2f}")
+        st.metric("MACD", f"{indicators['MACD'].iloc[-1]:.3f}")
+    
     with col2:
-        st.metric("MACD", f"{macd:.3f}")
+        st.metric("Signal Line", f"{indicators['Signal'].iloc[-1]:.3f}")
+        st.metric("Volume 3D Avg", format_number(indicators['Volume_3D_Avg'].iloc[-1], is_volume=True))
+    
     with col3:
-        st.metric("Signal", f"{signal:.3f}")
+        st.metric("VWAP", f"${indicators['VWAP'].iloc[-1]:.2f}")
+        latest_close = indicators['Close'].iloc[-1]
+        st.metric("Current Price", f"${latest_close:.2f}")
 
 def display_analysis_summary(indicators, info, rsi_value):
-    """Display a summary of the technical analysis"""
-    # EMA Analysis
-    current_price = indicators['Close'].iloc[-1]
-    ema_9 = indicators['EMA_9'].iloc[-1]
-    ema_20 = indicators['EMA_20'].iloc[-1]
-    ema_50 = indicators['EMA_50'].iloc[-1]
-    
-    st.markdown(f'''
-    **Moving Averages Analysis**
-    - Price vs EMA 9: {"Above" if current_price > ema_9 else "Below"} (Short-term trend)
-    - Price vs EMA 20: {"Above" if current_price > ema_20 else "Below"} (Medium-term trend)
-    - Price vs EMA 50: {"Above" if current_price > ema_50 else "Below"} (Long-term trend)
-    ''')
-
-    # Calculate trend strength
-    price_trend = "Bullish" if current_price > ema_20 else "Bearish"
-    trend_strength = abs((current_price - ema_20) / ema_20 * 100)
-    
-    # Calculate momentum
+    """Display summary of technical analysis"""
+    # Get latest values
+    latest_close = indicators['Close'].iloc[-1]
+    vwap = indicators['VWAP'].iloc[-1]
     macd = indicators['MACD'].iloc[-1]
     signal = indicators['Signal'].iloc[-1]
-    momentum = "Strong" if abs(macd) > abs(signal) else "Weak"
     
-    # Get sentiment summary
-    news = get_stock_news(st.session_state.selected_stock)
-    sentiment_counts = {'positive': 0, 'negative': 0, 'neutral': 0}
-    for item in news:
-        sentiment_counts[item['sentiment']] += 1
+    # Calculate summary metrics
+    price_vs_vwap = ((latest_close / vwap - 1) * 100)
     
-    if sum(sentiment_counts.values()) > 0:
-        sentiment_str = (
-            "Bullish" if sentiment_counts['positive'] > sentiment_counts['negative']
-            else "Bearish" if sentiment_counts['negative'] > sentiment_counts['positive']
-            else "Neutral"
-        )
-    else:
-        sentiment_str = "Neutral"
-
-    st.markdown(f'''
-    **Summary**
-    - Trend: {price_trend} (Strength: {trend_strength:.1f}%)
-    - Momentum: {momentum}
-    - RSI: {rsi_value:.1f} ({'Overbought' if rsi_value > 70 else 'Oversold' if rsi_value < 30 else 'Neutral'})
-    - Sentiment: {sentiment_str}
-    ''')
-
-def main():
-    """Main application entry point"""
-    if st.session_state.show_detail and st.session_state.selected_stock:
-        display_stock_details(st.session_state.selected_stock)
-    else:
-        st.title('Small-Cap Stock Screener')
-        display_navigation()
-        if st.session_state.view == "gainers":
-            df = safe_data_fetch(get_finviz_gainers)
-            if df is not None:
-                display_stock_data(df, "Top Gainers")
-        else:
-            df = safe_data_fetch(get_finviz_losers)
-            if df is not None:
-                display_stock_data(df, "Top Losers")
+    # Display summary
+    st.markdown(f"""
+    ### Technical Analysis Summary
+    
+    **Price Action**
+    - Current Price: ${latest_close:.2f}
+    - Price vs VWAP: {price_vs_vwap:+.1f}%
+    
+    **Momentum Indicators**
+    - RSI ({rsi_value:.1f}): {"Overbought" if rsi_value > 70 else "Oversold" if rsi_value < 30 else "Neutral"}
+    - MACD Signal: {"Bullish" if macd > signal else "Bearish"} (MACD: {macd:.3f}, Signal: {signal:.3f})
+    
+    **Volume Analysis**
+    - Current Volume: {format_number(indicators['Volume'].iloc[-1], is_volume=True)}
+    - 3-Day Avg Volume: {format_number(indicators['Volume_3D_Avg'].iloc[-1], is_volume=True)}
+    """)
 
 if __name__ == "__main__":
-    main()
+    # Main app logic
+    if not st.session_state.show_detail:
+        display_navigation()
+        
+        with st.spinner('Loading data...'):
+            # Fetch data based on current view
+            if st.session_state.view == "gainers":
+                df = safe_data_fetch(get_finviz_gainers)
+                if df is not None and not df.empty:
+                    display_stock_data(df, "Top Gainers")
+            else:
+                df = safe_data_fetch(get_finviz_losers)
+                if df is not None and not df.empty:
+                    display_stock_data(df, "Top Losers")
+    else:
+        # Display detailed view for selected stock
+        display_stock_details(st.session_state.selected_stock)
