@@ -154,7 +154,7 @@ def display_stock_details(symbol):
             st.metric("PE Ratio", stock_info['pe_ratio'])
         with col3:
             st.metric("Exchange", stock_info['exchange'])
-            st.metric("Volume", format_number(stock_info['volume'], is_volume=True, use_compact=False))
+            st.metric("Volume", format_number(stock_info['volume'], is_volume=True, use_compact=True))
         with col4:
             st.metric("Institutional Investors", stock_info['institutional_count'])
             st.metric("Institutional Ownership", stock_info['institutional_ownership'])
