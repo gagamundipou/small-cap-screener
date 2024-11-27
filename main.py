@@ -309,13 +309,13 @@ def display_technical_analysis(indicators, price_history, info):
         st.plotly_chart(fig_vol, use_container_width=True)
         
         # Volume analysis
-        current_vol = indicators['Volume'].iloc[-1]
-        avg_vol = indicators['Volume_3D_Avg'].iloc[-1]
+        current_vol = float(indicators['Volume'].iloc[-1])  # Ensure it's a float
+        avg_vol = float(indicators['Volume_3D_Avg'].iloc[-1])
         vol_ratio = (current_vol / avg_vol - 1) * 100
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Current Volume", format_number(current_vol, is_volume=True))
+            st.metric("Current Volume", format_number(current_vol, is_volume=True))  # is_volume=True is sufficient
         with col2:
             st.metric("3-Day Average", format_number(avg_vol, is_volume=True))
         with col3:
