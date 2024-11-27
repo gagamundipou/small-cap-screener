@@ -7,10 +7,27 @@ font = "sans serif"
 
 [server]
 headless = true
-enableCORS = true
+enableCORS = false
 enableXsrfProtection = false
 port = 5000
 address = "0.0.0.0"
+maxUploadSize = 200
+enableWebsocketCompression = false
 
 [browser]
 gatherUsageStats = false
+serverAddress = "0.0.0.0"
+serverPort = 5000
+
+[global]
+developmentMode = false
+showWarningOnDirectExecution = false
+disableWatchdogWarning = true
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = true
+caching = true
+
+[runner]
+fastReruns = true
