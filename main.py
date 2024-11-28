@@ -1,6 +1,8 @@
 import streamlit as st
 import os
-os.environ['STREAMLIT_SERVER_PORT'] = '5000'
+# Get port from environment variable (Azure uses PORT, fallback to 5000 for local dev)
+port = os.environ.get('PORT', '5000')
+os.environ['STREAMLIT_SERVER_PORT'] = port
 os.environ['STREAMLIT_SERVER_ADDRESS'] = '0.0.0.0'
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots

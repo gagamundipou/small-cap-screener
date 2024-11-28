@@ -1,0 +1,12 @@
+# Azure Web App configuration
+name: small-cap-screener
+runtime: python
+runtimeVersion: "3.11"
+startupCommand: "streamlit run main.py --server.port $PORT --server.address 0.0.0.0"
+env:
+  - name: PORT
+    value: 8000
+  - name: STREAMLIT_SERVER_PORT
+    value: 8000
+  - name: STREAMLIT_SERVER_ADDRESS
+    value: "0.0.0.0"
