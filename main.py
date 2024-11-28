@@ -1,7 +1,4 @@
 import streamlit as st
-import os
-import sys
-import logging
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
@@ -9,14 +6,9 @@ import numpy as np
 from datetime import datetime
 import pytz
 import time
+import os
+import logging
 import yfinance as yf
-
-# Configure logging for Streamlit Cloud
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    stream=sys.stdout
-)
 from stock_utils import (
     get_finviz_gainers, get_finviz_losers, format_number,
     get_stock_info, get_stock_price_history, get_stock_news,
@@ -317,13 +309,13 @@ def display_technical_analysis(indicators, price_history, info):
         st.plotly_chart(fig_vol, use_container_width=True)
         
         # Volume analysis
-        current_vol = float(indicators['Volume'].iloc[-1])
+        current_vol = float(indicators['Volume'].iloc[-1])  # Ensure it's a float
         avg_vol = float(indicators['Volume_3D_Avg'].iloc[-1])
         vol_ratio = (current_vol / avg_vol - 1) * 100
 
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Current Volume", format_number(current_vol, is_volume=True))
+            st.metric("Current Volume", f"{current_vol/1_000_000:.2f}M")
         with col2:
             st.metric("3-Day Average", format_number(avg_vol, is_volume=True))
         with col3:
@@ -435,223 +427,89 @@ def display_price_chart(indicators, price_history):
     colors = ['green' if price_history['Close'].iloc[i] >= price_history['Open'].iloc[i] else 'red' 
              for i in range(len(price_history))]
 
-    # Add volume bars
+    # Add volume bars with color
     fig.add_trace(go.Bar(
         x=indicators.index,
         y=indicators['Volume'],
         name='Volume',
-        marker_color='rgba(128,128,128,0.5)'
-    ), row=2, col=1)
-
-    # Update layout
-    fig.update_layout(
-        title='Price & Volume Analysis',
-        yaxis_title='Price',
-        yaxis2_title='Volume',
-        height=800,
-        xaxis_rangeslider_visible=False
-    )
-
-    # Display the chart
-    st.plotly_chart(fig, use_container_width=True)
-
-def display_technical_indicators(indicators):
-    """Display technical indicators summary"""
-    st.subheader('Technical Indicators Summary')
-    
-    # Calculate current values
-    current_price = indicators['Close'].iloc[-1]
-    ema_9 = indicators['EMA_9'].iloc[-1]
-    ema_20 = indicators['EMA_20'].iloc[-1]
-    ema_50 = indicators['EMA_50'].iloc[-1]
-    rsi = indicators['RSI'].iloc[-1]
-    macd = indicators['MACD'].iloc[-1]
-    signal = indicators['Signal'].iloc[-1]
-    
-    # Create columns for display
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("Price vs EMA-9", f"{(current_price/ema_9 - 1)*100:+.2f}%")
-        st.metric("RSI", f"{rsi:.1f}")
-    
-    with col2:
-        st.metric("Price vs EMA-20", f"{(current_price/ema_20 - 1)*100:+.2f}%")
-        st.metric("MACD", f"{macd:.3f}")
-    
-    with col3:
-        st.metric("Price vs EMA-50", f"{(current_price/ema_50 - 1)*100:+.2f}%")
-        st.metric("Signal Line", f"{signal:.3f}")
-
-def display_analysis_summary(indicators, info, rsi_value):
-    """Display technical analysis summary"""
-    st.subheader('Analysis Summary')
-    
-    # Get current values
-    current_price = indicators['Close'].iloc[-1]
-    ema_20 = indicators['EMA_20'].iloc[-1]
-    ema_50 = indicators['EMA_50'].iloc[-1]
-    macd = indicators['MACD'].iloc[-1]
-    signal = indicators['Signal'].iloc[-1]
-    vwap = indicators['VWAP'].iloc[-1]
-    
-    # Determine trend signals
-    trend_signals = []
-    
-    # Price vs EMAs
-    if current_price > ema_20:
-        trend_signals.append("Price above EMA-20 (Bullish)")
-    else:
-        trend_signals.append("Price below EMA-20 (Bearish)")
-        
-    if current_price > ema_50:
-        trend_signals.append("Price above EMA-50 (Bullish)")
-    else:
-        trend_signals.append("Price below EMA-50 (Bearish)")
-    
-    # RSI
-    if rsi_value > 70:
-        trend_signals.append("RSI indicates overbought")
-    elif rsi_value < 30:
-        trend_signals.append("RSI indicates oversold")
-    else:
-        trend_signals.append("RSI in neutral zone")
-    
-    # MACD
-    if macd > signal:
-        trend_signals.append("MACD above signal line (Bullish)")
-    else:
-        trend_signals.append("MACD below signal line (Bearish)")
-    
-    # VWAP
-    if current_price > vwap:
-        trend_signals.append("Price above VWAP (Bullish)")
-    else:
-        trend_signals.append("Price below VWAP (Bearish)")
-    
-    # Display signals
-    st.markdown("### Technical Signals")
-    for signal in trend_signals:
-        st.markdown(f"- {signal}")
-
-def main():
-    """Main function to run the Streamlit application"""
-    if st.session_state.show_detail and st.session_state.selected_stock:
-        display_stock_details(st.session_state.selected_stock)
-    else:
-        display_navigation()
-        if st.session_state.view == "gainers":
-            df_gainers = get_finviz_gainers()
-            display_stock_data(df_gainers, "Top Small-Cap Gainers")
-        else:
-            df_losers = get_finviz_losers()
-            display_stock_data(df_losers, "Top Small-Cap Losers")
-
-if __name__ == "__main__":
-    main()
-
-    # Add volume bars with color
-    fig.add_trace(go.Bar(
-        x=indicators.index,
-        y=price_history['Volume'],
-        name='Volume',
         marker_color=colors
     ), row=2, col=1)
 
-    # Update layout
+    # Format axes and layout
     fig.update_layout(
-        title='Price and Volume',
+        title='Price and Volume Analysis',
+        yaxis_title='Price',
+        yaxis2_title='Volume',
+        xaxis_rangeslider_visible=False,
         height=800,
-        showlegend=True,
-        xaxis_rangeslider_visible=False
+        showlegend=True
     )
 
-    # Update y-axes labels
-    fig.update_yaxes(title_text="Price ($)", row=1, col=1)
-    fig.update_yaxes(title_text="Volume", row=2, col=1)
-
+    # Format volume axis to show in millions
+    fig.update_yaxes(title_text="Volume (M)", tickformat='.2f', ticksuffix='M', row=2, col=1)
+    
     st.plotly_chart(fig, use_container_width=True)
 
-def display_analysis_summary(indicators, info, rsi_value):
-    """Display summary of technical analysis"""
-    st.subheader('Analysis Summary')
-    
-    # Price trend
-    current_price = indicators['Close'].iloc[-1]
-    prev_price = indicators['Close'].iloc[-2]
-    price_change = ((current_price / prev_price) - 1) * 100
-    
-    # Volume analysis
-    current_vol = indicators['Volume'].iloc[-1]
-    avg_vol = indicators['Volume_3D_Avg'].iloc[-1]
-    vol_change = ((current_vol / avg_vol) - 1) * 100
-    
-    # MACD analysis
-    macd = indicators['MACD'].iloc[-1]
-    signal = indicators['Signal'].iloc[-1]
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.metric("Price Change", f"{price_change:+.2f}%")
-        st.metric("Volume vs Average", f"{vol_change:+.2f}%")
-        
-    with col2:
-        st.metric("RSI", f"{rsi_value:.1f}")
-        st.metric("MACD Signal", "Bullish" if macd > signal else "Bearish")
-
 def display_technical_indicators(indicators):
-    """Display technical indicators summary"""
-    st.subheader('Technical Indicators')
-    
-    # Get current values
-    current_price = indicators['Close'].iloc[-1]
-    ema_9 = indicators['EMA_9'].iloc[-1]
-    ema_20 = indicators['EMA_20'].iloc[-1]
-    ema_50 = indicators['EMA_50'].iloc[-1]
-    rsi = indicators['RSI'].iloc[-1]
-    macd = indicators['MACD'].iloc[-1]
-    signal = indicators['Signal'].iloc[-1]
-    vwap = indicators['VWAP'].iloc[-1]
-    
-    # Create metrics
+    """Display technical indicators with improved formatting"""
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric("EMA 9", f"${ema_9:.2f}", f"{((ema_9/current_price - 1) * 100):+.2f}%")
-        st.metric("EMA 20", f"${ema_20:.2f}", f"{((ema_20/current_price - 1) * 100):+.2f}%")
+        st.metric("RSI (14)", f"{indicators['RSI'].iloc[-1]:.2f}")
+        st.metric("MACD", f"{indicators['MACD'].iloc[-1]:.3f}")
     
     with col2:
-        st.metric("EMA 50", f"${ema_50:.2f}", f"{((ema_50/current_price - 1) * 100):+.2f}%")
-        st.metric("VWAP", f"${vwap:.2f}", f"{((vwap/current_price - 1) * 100):+.2f}%")
+        st.metric("Signal Line", f"{indicators['Signal'].iloc[-1]:.3f}")
+        st.metric("Volume 3D Avg", format_number(indicators['Volume_3D_Avg'].iloc[-1], is_volume=True))
     
     with col3:
-        st.metric("RSI", f"{rsi:.1f}", "Overbought" if rsi > 70 else "Oversold" if rsi < 30 else "Neutral")
-        st.metric("MACD", f"{macd:.3f}", f"{macd - signal:+.3f}")
+        st.metric("VWAP", f"${indicators['VWAP'].iloc[-1]:.2f}")
+        latest_close = indicators['Close'].iloc[-1]
+        st.metric("Current Price", f"${latest_close:.2f}")
 
-def main():
-    """Main function to run the Streamlit application"""
-    if not check_connection():
-        st.error("Unable to connect to data service. Please check your internet connection.")
-        return
-
-    display_navigation()
-
-    if st.session_state.show_detail and st.session_state.selected_stock:
-        display_stock_details(st.session_state.selected_stock)
-    else:
-        if st.session_state.view == "gainers":
-            gainers_df = safe_data_fetch(get_finviz_gainers)
-            if gainers_df is not None:
-                display_stock_data(gainers_df, "Top Gainers")
-            else:
-                st.error("Unable to fetch gainers data. Please try again later.")
-        else:
-            losers_df = safe_data_fetch(get_finviz_losers)
-            if losers_df is not None:
-                display_stock_data(losers_df, "Top Losers")
-            else:
-                st.error("Unable to fetch losers data. Please try again later.")
+def display_analysis_summary(indicators, info, rsi_value):
+    """Display summary of technical analysis"""
+    # Get latest values
+    latest_close = indicators['Close'].iloc[-1]
+    vwap = indicators['VWAP'].iloc[-1]
+    macd = indicators['MACD'].iloc[-1]
+    signal = indicators['Signal'].iloc[-1]
+    
+    # Calculate summary metrics
+    price_vs_vwap = ((latest_close / vwap - 1) * 100)
+    
+    # Display summary
+    st.markdown(f"""
+    ### Technical Analysis Summary
+    
+    **Price Action**
+    - Current Price: ${latest_close:.2f}
+    - Price vs VWAP: {price_vs_vwap:+.1f}%
+    
+    **Momentum Indicators**
+    - RSI ({rsi_value:.1f}): {"Overbought" if rsi_value > 70 else "Oversold" if rsi_value < 30 else "Neutral"}
+    - MACD Signal: {"Bullish" if macd > signal else "Bearish"} (MACD: {macd:.3f}, Signal: {signal:.3f})
+    
+    **Volume Analysis**
+    - Current Volume: {format_number(indicators['Volume'].iloc[-1], is_volume=True)}
+    - 3-Day Avg Volume: {format_number(indicators['Volume_3D_Avg'].iloc[-1], is_volume=True)}
+    """)
 
 if __name__ == "__main__":
-    main()
+    # Main app logic
+    if not st.session_state.show_detail:
+        display_navigation()
+        
+        with st.spinner('Loading data...'):
+            # Fetch data based on current view
+            if st.session_state.view == "gainers":
+                df = safe_data_fetch(get_finviz_gainers)
+                if df is not None and not df.empty:
+                    display_stock_data(df, "Top Gainers")
+            else:
+                df = safe_data_fetch(get_finviz_losers)
+                if df is not None and not df.empty:
+                    display_stock_data(df, "Top Losers")
+    else:
+        # Display detailed view for selected stock
+        display_stock_details(st.session_state.selected_stock)

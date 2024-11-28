@@ -14,12 +14,6 @@ import numpy as np
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def validate_stock_symbol(symbol):
-    """Validate stock symbol format"""
-    if not isinstance(symbol, str) or not symbol.strip():
-        return False
-    return True
-
 def analyze_sentiment(title):
     """Analyze sentiment of news title with financial-specific keywords"""
     try:
