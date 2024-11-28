@@ -162,22 +162,35 @@ def get_finviz_data(url):
                                 
                                 # Clean and parse price
                                 price_str = cols[8].text.strip().replace('$', '').replace(',', '')
-                                price = float(price_str) if price_str and price_str != '-' else 0
+                                try:
+                                    price = float(price_str) if price_str and price_str != '-' else 0
+                                except ValueError:
+                                    logger.warning(f"Invalid price format: {price_str}")
+                                    continue
                                 
                                 # Clean and parse change percentage
                                 change_str = cols[9].text.strip().replace('%', '').replace(',', '')
-                                change = float(change_str) if change_str and change_str != '-' else 0
+                                try:
+                                    change = float(change_str) if change_str and change_str != '-' else 0
+                                except ValueError:
+                                    logger.warning(f"Invalid change percentage format: {change_str}")
+                                    continue
                                 
                                 # Clean and parse volume
                                 volume_str = cols[10].text.strip().replace(',', '')
-                                if 'K' in volume_str:
-                                    volume = float(volume_str.replace('K', '')) * 1000
-                                elif 'M' in volume_str:
-                                    volume = float(volume_str.replace('M', '')) * 1000000
-                                elif 'B' in volume_str:
-                                    volume = float(volume_str.replace('B', '')) * 1000000000
-                                else:
-                                    volume = int(volume_str) if volume_str and volume_str != '-' else 0
+                                try:
+                                    if 'K' in volume_str:
+                                        volume = float(volume_str.replace('K', '')) * 1000
+                                    elif 'M' in volume_str:
+                                        volume = float(volume_str.replace('M', '')) * 1000000
+                                    elif 'B' in volume_str:
+                                        volume = float(volume_str.replace('B', '')) * 1000000000
+                                    else:
+                                        volume = float(volume_str) if volume_str and volume_str != '-' else 0
+                                    volume = int(volume)
+                                except ValueError:
+                                    logger.warning(f"Invalid volume format: {volume_str}")
+                                    continue
                                 
                                 data.append({
                                     'Ticker': ticker,

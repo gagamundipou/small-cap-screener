@@ -116,6 +116,60 @@ def display_navigation():
     
     st.markdown("---")
 
+def display_price_chart(indicators, price_history):
+    """Display the price chart with moving averages and volume analysis"""
+    # Create subplots with price chart and volume
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+                       vertical_spacing=0.03,
+                       row_heights=[0.7, 0.3])
+
+    # Add candlestick chart
+    fig.add_trace(go.Candlestick(
+        x=indicators.index,
+        open=pd.to_numeric(price_history['Open'], errors='coerce'),
+        high=pd.to_numeric(price_history['High'], errors='coerce'),
+        low=pd.to_numeric(price_history['Low'], errors='coerce'),
+        close=pd.to_numeric(price_history['Close'], errors='coerce'),
+        name='Price'
+    ), row=1, col=1)
+
+    # Add EMA lines to price chart
+    for period in [9, 20, 50]:
+        fig.add_trace(go.Scatter(
+            x=indicators.index,
+            y=indicators[f'EMA_{period}'],
+            name=f'EMA {period}',
+            line=dict(width=1)
+        ), row=1, col=1)
+
+    # Calculate colors for volume bars
+    colors = ['green' if price_history['Close'].iloc[i] >= price_history['Open'].iloc[i] else 'red' 
+             for i in range(len(price_history))]
+
+    # Add volume bars with color
+    fig.add_trace(go.Bar(
+        x=indicators.index,
+        y=indicators['Volume'],
+        name='Volume',
+        marker_color=colors
+    ), row=2, col=1)
+
+    # Format axes and layout
+    fig.update_layout(
+        title='Price and Volume Analysis',
+        yaxis_title='Price',
+        yaxis2_title='Volume',
+        xaxis_rangeslider_visible=False,
+        height=800,
+        showlegend=True
+    )
+
+    # Format volume axis to show in millions
+    fig.update_yaxes(title_text="Volume (M)", tickformat='.2f', ticksuffix='M', row=2, col=1)
+    
+    st.plotly_chart(fig, use_container_width=True)
+    return fig
+
 def display_stock_details(symbol):
     """Display detailed view for a selected stock with improved error handling"""
     # Back button at the top with proper return to previous view
@@ -397,59 +451,6 @@ def display_technical_analysis(indicators, price_history, info):
         bb_position = (price - lower) / (upper - lower) * 100
         st.info(f"Position within Bands: {bb_position:.1f}%")
 
-def display_price_chart(indicators, price_history):
-    """Display the price chart with moving averages and volume analysis"""
-    # Create subplots with price chart and volume
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
-                       vertical_spacing=0.03,
-                       row_heights=[0.7, 0.3])
-
-    # Add candlestick chart
-    fig.add_trace(go.Candlestick(
-        x=indicators.index,
-        open=pd.to_numeric(price_history['Open'], errors='coerce'),
-        high=pd.to_numeric(price_history['High'], errors='coerce'),
-        low=pd.to_numeric(price_history['Low'], errors='coerce'),
-        close=pd.to_numeric(price_history['Close'], errors='coerce'),
-        name='Price'
-    ), row=1, col=1)
-
-    # Add EMA lines to price chart
-    for period in [9, 20, 50]:
-        fig.add_trace(go.Scatter(
-            x=indicators.index,
-            y=indicators[f'EMA_{period}'],
-            name=f'EMA {period}',
-            line=dict(width=1)
-        ), row=1, col=1)
-
-    # Calculate colors for volume bars
-    colors = ['green' if price_history['Close'].iloc[i] >= price_history['Open'].iloc[i] else 'red' 
-             for i in range(len(price_history))]
-
-    # Add volume bars with color
-    fig.add_trace(go.Bar(
-        x=indicators.index,
-        y=indicators['Volume'],
-        name='Volume',
-        marker_color=colors
-    ), row=2, col=1)
-
-    # Format axes and layout
-    fig.update_layout(
-        title='Price and Volume Analysis',
-        yaxis_title='Price',
-        yaxis2_title='Volume',
-        xaxis_rangeslider_visible=False,
-        height=800,
-        showlegend=True
-    )
-
-    # Format volume axis to show in millions
-    fig.update_yaxes(title_text="Volume (M)", tickformat='.2f', ticksuffix='M', row=2, col=1)
-    
-    st.plotly_chart(fig, use_container_width=True)
-
 def display_technical_indicators(indicators):
     """Display technical indicators with improved formatting"""
     col1, col2, col3 = st.columns(3)
@@ -495,21 +496,25 @@ def display_analysis_summary(indicators, info, rsi_value):
     - 3-Day Avg Volume: {format_number(indicators['Volume_3D_Avg'].iloc[-1], is_volume=True)}
     """)
 
-if __name__ == "__main__":
-    # Main app logic
-    if not st.session_state.show_detail:
-        display_navigation()
-        
-        with st.spinner('Loading data...'):
-            # Fetch data based on current view
-            if st.session_state.view == "gainers":
-                df = safe_data_fetch(get_finviz_gainers)
-                if df is not None and not df.empty:
-                    display_stock_data(df, "Top Gainers")
-            else:
-                df = safe_data_fetch(get_finviz_losers)
-                if df is not None and not df.empty:
-                    display_stock_data(df, "Top Losers")
-    else:
-        # Display detailed view for selected stock
+def main():
+    """Main function to run the Streamlit application"""
+    display_navigation()
+    
+    if st.session_state.show_detail and st.session_state.selected_stock:
         display_stock_details(st.session_state.selected_stock)
+    else:
+        if st.session_state.view == "gainers":
+            gainers = safe_data_fetch(get_finviz_gainers)
+            if gainers is not None:
+                display_stock_data(gainers, "Top Gainers")
+            else:
+                st.error("Failed to fetch gainers data. Please try again later.")
+        else:
+            losers = safe_data_fetch(get_finviz_losers)
+            if losers is not None:
+                display_stock_data(losers, "Top Losers")
+            else:
+                st.error("Failed to fetch losers data. Please try again later.")
+
+if __name__ == "__main__":
+    main()
