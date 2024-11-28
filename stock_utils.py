@@ -44,12 +44,7 @@ def get_stock_news(symbol):
         time.sleep(1)  # Reduced delay to improve responsiveness
         
         stock = yf.Ticker(symbol)
-        # Validate stock object
-        if not stock or not hasattr(stock, 'news'):
-            logger.warning(f"Invalid stock object or no news attribute for {symbol}")
-            return []
-            
-        news = stock.news[:5] if stock.news else []
+        news = stock.news[:5] if hasattr(stock, 'news') else []
         
         if not news:
             return []
@@ -77,23 +72,11 @@ def get_stock_news(symbol):
 def get_stock_info(symbol):
     """Get stock information with improved error handling"""
     try:
-        if not symbol or not isinstance(symbol, str) or len(symbol) < 1 or len(symbol) > 5:
-            logger.error("Invalid symbol format")
-            return None
-            
-        if symbol.upper() in ['API', 'NONE', 'NULL', 'TRUE', 'FALSE']:
-            logger.error("Invalid symbol value")
-            return None
-            
         stock = yf.Ticker(symbol)
-        if not hasattr(stock, 'info') or not stock.info:
-            logger.error(f"No data available for symbol: {symbol}")
-            return None
-            
-        fast_info = stock.fast_info if hasattr(stock, 'fast_info') else {}
-        info = stock.info
+        fast_info = stock.fast_info
+        info = stock.info if hasattr(stock, 'info') else {}
         
-        # Try multiple sources for each field with validation
+        # Try multiple sources for each field
         sector = info.get('sector') or info.get('industry') or 'N/A'
         industry = info.get('industry') or info.get('sector') or 'N/A'
         exchange = (info.get('exchange') or 
@@ -112,21 +95,22 @@ def get_stock_info(symbol):
                  info.get('averageVolume') or 
                  fast_info.get('volume', 0))
         
-        # Update institutional ownership calculation with validation
+        # Update institutional ownership calculation
         institutional_ownership = None
         for key in ['institutionalOwnershipPercentage', 'institutionPercentHeld', 'institutionPercent', 'institutionsPercentHeld']:
-            if key in info and info[key] is not None and isinstance(info[key], (int, float)):
+            if key in info and info[key] is not None:
                 institutional_ownership = float(info[key])
                 break
         
+        # Format the institutional ownership with proper percentage
         institutional_ownership_str = f"{institutional_ownership*100:.1f}%" if institutional_ownership is not None else "N/A"
         
-        # Get institutional count with validation
-        institutional_count = 0
-        for key in ['institutionsCount', 'institutionalHolders', 'numberOfInstitutionalHolders']:
-            if key in info and info[key] is not None and isinstance(info[key], (int, float)):
-                institutional_count = int(info[key])
-                break
+        # Get institutional count with fallback options
+        institutional_count = (
+            info.get('institutionsCount') or
+            info.get('institutionalHolders') or
+            info.get('numberOfInstitutionalHolders', 0)
+        )
         
         return {
             'symbol': symbol,
@@ -135,7 +119,7 @@ def get_stock_info(symbol):
             'exchange': exchange,
             'market_cap': format_number(market_cap, prefix="$"),
             'pe_ratio': format_number(pe_ratio),
-            'volume': volume,
+            'volume': volume,  # Return raw volume for proper formatting later
             'description': info.get('longBusinessSummary', 'Company information not available'),
             'institutional_ownership': institutional_ownership_str,
             'institutional_count': format_number(institutional_count) if institutional_count else "N/A"

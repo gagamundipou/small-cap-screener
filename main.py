@@ -124,32 +124,15 @@ def display_stock_details(symbol):
         st.rerun()
         return
 
-    # Enhanced symbol validation
-    if not symbol or not isinstance(symbol, str) or len(symbol) < 1 or len(symbol) > 5:
-        st.error("Invalid stock symbol")
-        reset_navigation_state()
-        st.rerun()
-        return
-
-    # Check if symbol is valid (not API or other invalid values)
-    if symbol.upper() in ['API', 'NONE', 'NULL', 'TRUE', 'FALSE']:
-        st.error("Invalid stock symbol")
-        reset_navigation_state()
-        st.rerun()
-        return
-
-    # Initial stock validation with better error handling
+    # Initial stock validation
     try:
         stock = yf.Ticker(symbol)
         info = stock.info
         if not info:
-            st.error(f"No data available for symbol: {symbol}")
+            st.error(f"Unable to fetch data for {symbol}. The stock might be delisted or invalid.")
             return
     except Exception as e:
-        if '404' in str(e):
-            st.error(f"Symbol not found: {symbol}")
-        else:
-            st.error(f"Error accessing stock data: {str(e)}")
+        st.error(f"Error accessing stock data: {str(e)}")
         return
 
     with st.spinner('Loading stock details...'):
