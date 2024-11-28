@@ -119,8 +119,8 @@ def display_navigation():
 def display_stock_details(symbol):
     """Display detailed view for a selected stock with improved error handling"""
     # Validate symbol format first
-    if not symbol or not isinstance(symbol, str) or symbol.upper() == "API":
-        st.error("Invalid stock symbol")
+    if not symbol or not isinstance(symbol, str):
+        st.error("Invalid stock symbol format")
         return
         
     # Back button at the top with proper return to previous view
@@ -129,11 +129,12 @@ def display_stock_details(symbol):
         st.rerun()
         return
 
-    # Initial stock validation
+    # Initial stock validation with better error handling
     try:
         stock = yf.Ticker(symbol)
-        if not hasattr(stock, 'info') or not stock.info:
-            st.error(f"Unable to fetch data for {symbol}. The stock might be delisted or invalid.")
+        # Try to access basic info to verify the symbol exists
+        if not stock.info or 'regularMarketPrice' not in stock.info:
+            st.error(f"Could not find data for symbol: {symbol}")
             return
     except Exception as e:
         st.error(f"Error accessing stock data: {str(e)}")
