@@ -118,6 +118,11 @@ def display_navigation():
 
 def display_stock_details(symbol):
     """Display detailed view for a selected stock with improved error handling"""
+    # Validate symbol format first
+    if not symbol or not isinstance(symbol, str) or symbol.upper() == "API":
+        st.error("Invalid stock symbol")
+        return
+        
     # Back button at the top with proper return to previous view
     if st.button('← Back to Screener'):
         reset_navigation_state()
@@ -127,8 +132,7 @@ def display_stock_details(symbol):
     # Initial stock validation
     try:
         stock = yf.Ticker(symbol)
-        info = stock.info
-        if not info:
+        if not hasattr(stock, 'info') or not stock.info:
             st.error(f"Unable to fetch data for {symbol}. The stock might be delisted or invalid.")
             return
     except Exception as e:
