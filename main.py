@@ -124,11 +124,20 @@ def display_stock_details(symbol):
         st.rerun()
         return
 
-    # Validate symbol format first
-    if not symbol or not isinstance(symbol, str):
-        st.error("Invalid stock symbol format")
+    # Enhanced symbol validation
+    if not symbol or not isinstance(symbol, str) or len(symbol) < 1 or len(symbol) > 5:
+        st.error("Invalid stock symbol")
+        reset_navigation_state()
+        st.rerun()
         return
-        
+
+    # Check if symbol is valid (not API or other invalid values)
+    if symbol.upper() in ['API', 'NONE', 'NULL', 'TRUE', 'FALSE']:
+        st.error("Invalid stock symbol")
+        reset_navigation_state()
+        st.rerun()
+        return
+
     # Initial stock validation with better error handling
     try:
         stock = yf.Ticker(symbol)

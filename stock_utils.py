@@ -77,8 +77,12 @@ def get_stock_news(symbol):
 def get_stock_info(symbol):
     """Get stock information with improved error handling"""
     try:
-        if not symbol or not isinstance(symbol, str):
+        if not symbol or not isinstance(symbol, str) or len(symbol) < 1 or len(symbol) > 5:
             logger.error("Invalid symbol format")
+            return None
+            
+        if symbol.upper() in ['API', 'NONE', 'NULL', 'TRUE', 'FALSE']:
+            logger.error("Invalid symbol value")
             return None
             
         stock = yf.Ticker(symbol)
