@@ -60,7 +60,7 @@ def get_finviz_news(symbol):
 def analyze_sentiment(title):
     """Analyze sentiment of news title with financial-specific keywords"""
     try:
-        positive_keywords = ['beat', 'growth', 'up', 'record', 'exceeded', 'positive', 'rise', 'FDA approval', 'Clinical trial results', 'Phase 1/2/3 trial', 'Product launch', 'New contract', 'Partnership announcement', 'Acquisition', 'Merger', 'Share buyback', 'Upgraded guidance', 'Revenue growth', 'Profitability milestone']
+        positive_keywords = ['beat', 'growth', 'up', 'record', 'exceeded', 'positive', 'rise', 'FDA approval', 'Clinical trial results', 'Phase 1/2/3 trial','Product launch', 'New contract', 'Partnership announcement', 'Acquisition', 'Merger', 'Share buyback', 'Upgraded guidance', 'Revenue growth', 'Profitability milestone', 'Phase 3']
         negative_keywords = ['miss', 'down', 'fall', 'decline', 'negative', 'loss', 'dilution', 'lawsuit']
         
         # Get base sentiment
