@@ -1,33 +1,36 @@
-[theme]
-primaryColor = "#FF4B4B"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F0F2F6"
-textColor = "#262730"
-font = "sans serif"
-
 [server]
 headless = true
-enableCORS = false
+enableCORS = true
 enableXsrfProtection = false
 port = 5000
 address = "0.0.0.0"
 maxUploadSize = 200
-enableWebsocketCompression = false
+maxMessageSize = 200
 
 [browser]
 gatherUsageStats = false
 serverAddress = "0.0.0.0"
-serverPort = 5000
+serverPort = 8501
 
 [global]
 developmentMode = false
 showWarningOnDirectExecution = false
 disableWatchdogWarning = true
 
+[theme]
+primaryColor = "#0ECB81"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"
+
 [client]
 toolbarMode = "minimal"
 showErrorDetails = true
 caching = true
+
+[logger]
+level = "info"
+messageFormat = "%(asctime)s %(message)s"
 
 [runner]
 fastReruns = true
