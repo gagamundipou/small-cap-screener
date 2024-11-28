@@ -383,6 +383,36 @@ def get_small_cap_symbols():
                         cols = row.find_all('td')
                         if len(cols) > 1:
                             symbol = cols[1].text.strip()
+                            symbols.append(symbol)
+                    
+                    return symbols
+                    
+            except Exception as e:
+                logger.error(f"Error in attempt {attempt + 1}: {str(e)}")
+                if not exponential_backoff(attempt):
+                    break
+                attempt += 1
+        
+        return []
+        
+    except Exception as e:
+        logger.error(f"Error fetching small-cap symbols: {str(e)}")
+        return []
+                            symbols.append(symbol)
+                            
+                return symbols
+                
+            except Exception as e:
+                logger.error(f"Error in attempt {attempt + 1}: {str(e)}")
+                if not exponential_backoff(attempt):
+                    break
+                attempt += 1
+                
+        return []
+        
+    except Exception as e:
+        logger.error(f"Error fetching small-cap symbols: {str(e)}")
+        return []
 
 @st.cache_data(ttl=86400)
 def get_finviz_stock_page(symbol):
