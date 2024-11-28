@@ -16,4 +16,5 @@ dependencies = [
     "requests>=2.32.3",
     "streamlit>=1.40.1",
     "textblob>=0.18.0.post0",
+    "yfinance>=0.2.50",
 ]
