@@ -1,4 +1,7 @@
 import streamlit as st
+import os
+os.environ['STREAMLIT_SERVER_PORT'] = '5000'
+os.environ['STREAMLIT_SERVER_ADDRESS'] = '0.0.0.0'
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
