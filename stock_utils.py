@@ -14,6 +14,49 @@ import numpy as np
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def parse_finviz_date(date_str):
+    """Parse Finviz date format to datetime object"""
+    try:
+        today = datetime.now()
+        if 'Today' in date_str:
+            time_str = date_str.replace('Today ', '')
+            dt = datetime.strptime(f"{today.strftime('%Y-%m-%d')} {time_str}", '%Y-%m-%d %H:%M')
+        else:
+            dt = datetime.strptime(date_str.strip(), '%b-%d-%y %H:%M%p')
+        return dt
+    except Exception as e:
+        logger.error(f"Error parsing date: {str(e)}")
+        return datetime.now()
+
+def get_finviz_news(symbol):
+    """Fetch and analyze news from Finviz"""
+    try:
+        url = f"https://finviz.com/quote.ashx?t={symbol}"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        news_table = soup.find('table', {'class': 'news-table'})
+        if news_table:
+            news = []
+            for row in news_table.find_all('tr')[:5]:  # Get latest 5 news
+                cells = row.find_all('td')
+                if len(cells) == 2:
+                    title = cells[1].a.text
+                    link = cells[1].a['href']
+                    date = cells[0].text
+                    sentiment = analyze_sentiment(title)
+                    news.append({
+                        'title': title,
+                        'link': link,
+                        'date': parse_finviz_date(date),
+                        'sentiment': sentiment
+                    })
+            return news
+        return []
+    except Exception as e:
+        logger.error(f"Error fetching Finviz news: {str(e)}")
+        return []
+
 def analyze_sentiment(title):
     """Analyze sentiment of news title with financial-specific keywords"""
     try:
@@ -38,8 +81,8 @@ def analyze_sentiment(title):
         return 'neutral'
 
 @st.cache_data(ttl=3600)
-def get_stock_news(symbol):
-    """Fetch and analyze news for a stock with improved rate limiting"""
+def get_yahoo_news(symbol):
+    """Fetch and analyze news from Yahoo Finance"""
     try:
         time.sleep(1)  # Reduced delay to improve responsiveness
         
@@ -67,6 +110,26 @@ def get_stock_news(symbol):
     except Exception as e:
         logger.error(f"Error fetching news for {symbol}: {str(e)}")
         return []
+
+@st.cache_data(ttl=3600)
+def get_stock_news(symbol):
+    """Fetch and combine news from multiple sources"""
+    yahoo_news = get_yahoo_news(symbol)
+    finviz_news = get_finviz_news(symbol)
+    
+    # Combine and sort by date
+    all_news = yahoo_news + finviz_news
+    all_news.sort(key=lambda x: x['date'], reverse=True)
+    
+    # Remove duplicates based on title similarity
+    seen_titles = set()
+    unique_news = []
+    for item in all_news:
+        if item['title'] not in seen_titles:
+            seen_titles.add(item['title'])
+            unique_news.append(item)
+    
+    return unique_news[:5]  # Return top 5 most recent news
 
 @st.cache_data(ttl=86400)
 def get_stock_info(symbol):
