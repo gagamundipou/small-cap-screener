@@ -1,4 +1,7 @@
 import streamlit as st
+import os
+import sys
+import logging
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
@@ -6,9 +9,14 @@ import numpy as np
 from datetime import datetime
 import pytz
 import time
-import os
-import logging
 import yfinance as yf
+
+# Configure logging for Streamlit Cloud
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
 from stock_utils import (
     get_finviz_gainers, get_finviz_losers, format_number,
     get_stock_info, get_stock_price_history, get_stock_news,
@@ -426,6 +434,121 @@ def display_price_chart(indicators, price_history):
     # Calculate colors for volume bars
     colors = ['green' if price_history['Close'].iloc[i] >= price_history['Open'].iloc[i] else 'red' 
              for i in range(len(price_history))]
+
+    # Add volume bars
+    fig.add_trace(go.Bar(
+        x=indicators.index,
+        y=indicators['Volume'],
+        name='Volume',
+        marker_color='rgba(128,128,128,0.5)'
+    ), row=2, col=1)
+
+    # Update layout
+    fig.update_layout(
+        title='Price & Volume Analysis',
+        yaxis_title='Price',
+        yaxis2_title='Volume',
+        height=800,
+        xaxis_rangeslider_visible=False
+    )
+
+    # Display the chart
+    st.plotly_chart(fig, use_container_width=True)
+
+def display_technical_indicators(indicators):
+    """Display technical indicators summary"""
+    st.subheader('Technical Indicators Summary')
+    
+    # Calculate current values
+    current_price = indicators['Close'].iloc[-1]
+    ema_9 = indicators['EMA_9'].iloc[-1]
+    ema_20 = indicators['EMA_20'].iloc[-1]
+    ema_50 = indicators['EMA_50'].iloc[-1]
+    rsi = indicators['RSI'].iloc[-1]
+    macd = indicators['MACD'].iloc[-1]
+    signal = indicators['Signal'].iloc[-1]
+    
+    # Create columns for display
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Price vs EMA-9", f"{(current_price/ema_9 - 1)*100:+.2f}%")
+        st.metric("RSI", f"{rsi:.1f}")
+    
+    with col2:
+        st.metric("Price vs EMA-20", f"{(current_price/ema_20 - 1)*100:+.2f}%")
+        st.metric("MACD", f"{macd:.3f}")
+    
+    with col3:
+        st.metric("Price vs EMA-50", f"{(current_price/ema_50 - 1)*100:+.2f}%")
+        st.metric("Signal Line", f"{signal:.3f}")
+
+def display_analysis_summary(indicators, info, rsi_value):
+    """Display technical analysis summary"""
+    st.subheader('Analysis Summary')
+    
+    # Get current values
+    current_price = indicators['Close'].iloc[-1]
+    ema_20 = indicators['EMA_20'].iloc[-1]
+    ema_50 = indicators['EMA_50'].iloc[-1]
+    macd = indicators['MACD'].iloc[-1]
+    signal = indicators['Signal'].iloc[-1]
+    vwap = indicators['VWAP'].iloc[-1]
+    
+    # Determine trend signals
+    trend_signals = []
+    
+    # Price vs EMAs
+    if current_price > ema_20:
+        trend_signals.append("Price above EMA-20 (Bullish)")
+    else:
+        trend_signals.append("Price below EMA-20 (Bearish)")
+        
+    if current_price > ema_50:
+        trend_signals.append("Price above EMA-50 (Bullish)")
+    else:
+        trend_signals.append("Price below EMA-50 (Bearish)")
+    
+    # RSI
+    if rsi_value > 70:
+        trend_signals.append("RSI indicates overbought")
+    elif rsi_value < 30:
+        trend_signals.append("RSI indicates oversold")
+    else:
+        trend_signals.append("RSI in neutral zone")
+    
+    # MACD
+    if macd > signal:
+        trend_signals.append("MACD above signal line (Bullish)")
+    else:
+        trend_signals.append("MACD below signal line (Bearish)")
+    
+    # VWAP
+    if current_price > vwap:
+        trend_signals.append("Price above VWAP (Bullish)")
+    else:
+        trend_signals.append("Price below VWAP (Bearish)")
+    
+    # Display signals
+    st.markdown("### Technical Signals")
+    for signal in trend_signals:
+        st.markdown(f"- {signal}")
+
+def main():
+    """Main function to run the Streamlit application"""
+    if st.session_state.show_detail and st.session_state.selected_stock:
+        display_stock_details(st.session_state.selected_stock)
+    else:
+        display_navigation()
+        if st.session_state.view == "gainers":
+            df_gainers = get_finviz_gainers()
+            display_stock_data(df_gainers, "Top Small-Cap Gainers")
+        else:
+            df_losers = get_finviz_losers()
+            display_stock_data(df_losers, "Top Small-Cap Losers")
+
+if __name__ == "__main__":
+    main()
 
     # Add volume bars with color
     fig.add_trace(go.Bar(
