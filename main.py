@@ -8,10 +8,9 @@ import pytz
 import time
 import os
 import logging
-import yfinance as yf
 from stock_utils import (
     get_finviz_gainers, get_finviz_losers, format_number,
-    get_stock_info, get_stock_price_history, get_stock_news,
+    get_finviz_stock_info, get_finviz_price_history, get_finviz_news,
     calculate_technical_indicators
 )
 
@@ -37,11 +36,10 @@ def safe_data_fetch(fetch_func, *args, **kwargs):
             continue
 
 def check_connection():
-    """Test connection to data service"""
+    """Test connection to Finviz"""
     try:
-        stock = yf.Ticker("AAPL")
-        _ = stock.fast_info
-        return True
+        response = requests.get("https://finviz.com", timeout=5)
+        return response.status_code == 200
     except Exception:
         return False
 
@@ -180,9 +178,8 @@ def display_stock_details(symbol):
 
     # Initial stock validation
     try:
-        stock = yf.Ticker(symbol)
-        info = stock.info
-        if not info:
+        stock_info = safe_data_fetch(get_finviz_stock_info, symbol)
+        if not stock_info:
             st.error(f"Unable to fetch data for {symbol}. The stock might be delisted or invalid.")
             return
     except Exception as e:
