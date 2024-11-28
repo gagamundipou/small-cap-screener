@@ -1,3 +1,4 @@
+import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 import streamlit as st
@@ -8,7 +9,6 @@ import requests
 from bs4 import BeautifulSoup
 from textblob import TextBlob
 import numpy as np
-import re
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -162,35 +162,22 @@ def get_finviz_data(url):
                                 
                                 # Clean and parse price
                                 price_str = cols[8].text.strip().replace('$', '').replace(',', '')
-                                try:
-                                    price = float(price_str) if price_str and price_str != '-' else 0
-                                except ValueError:
-                                    logger.warning(f"Invalid price format: {price_str}")
-                                    continue
+                                price = float(price_str) if price_str and price_str != '-' else 0
                                 
                                 # Clean and parse change percentage
                                 change_str = cols[9].text.strip().replace('%', '').replace(',', '')
-                                try:
-                                    change = float(change_str) if change_str and change_str != '-' else 0
-                                except ValueError:
-                                    logger.warning(f"Invalid change percentage format: {change_str}")
-                                    continue
+                                change = float(change_str) if change_str and change_str != '-' else 0
                                 
                                 # Clean and parse volume
                                 volume_str = cols[10].text.strip().replace(',', '')
-                                try:
-                                    if 'K' in volume_str:
-                                        volume = float(volume_str.replace('K', '')) * 1000
-                                    elif 'M' in volume_str:
-                                        volume = float(volume_str.replace('M', '')) * 1000000
-                                    elif 'B' in volume_str:
-                                        volume = float(volume_str.replace('B', '')) * 1000000000
-                                    else:
-                                        volume = float(volume_str) if volume_str and volume_str != '-' else 0
-                                    volume = int(volume)
-                                except ValueError:
-                                    logger.warning(f"Invalid volume format: {volume_str}")
-                                    continue
+                                if 'K' in volume_str:
+                                    volume = float(volume_str.replace('K', '')) * 1000
+                                elif 'M' in volume_str:
+                                    volume = float(volume_str.replace('M', '')) * 1000000
+                                elif 'B' in volume_str:
+                                    volume = float(volume_str.replace('B', '')) * 1000000000
+                                else:
+                                    volume = int(volume_str) if volume_str and volume_str != '-' else 0
                                 
                                 data.append({
                                     'Ticker': ticker,
@@ -383,169 +370,6 @@ def get_small_cap_symbols():
                         cols = row.find_all('td')
                         if len(cols) > 1:
                             symbol = cols[1].text.strip()
-                            symbols.append(symbol)
-                    
-                    return symbols
-                    
-            except Exception as e:
-                logger.error(f"Error in attempt {attempt + 1}: {str(e)}")
-                if not exponential_backoff(attempt):
-                    break
-                attempt += 1
-        
-        return []
-        
-    except Exception as e:
-        logger.error(f"Error fetching small-cap symbols: {str(e)}")
-        return []
-                            symbols.append(symbol)
-                            
-                return symbols
-                
-            except Exception as e:
-                logger.error(f"Error in attempt {attempt + 1}: {str(e)}")
-                if not exponential_backoff(attempt):
-                    break
-                attempt += 1
-                
-        return []
-        
-    except Exception as e:
-        logger.error(f"Error fetching small-cap symbols: {str(e)}")
-        return []
-
-@st.cache_data(ttl=86400)
-def get_finviz_stock_page(symbol):
-    """Fetch detailed stock information from Finviz"""
-    url = f"https://finviz.com/quote.ashx?t={symbol}"
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-    
-    try:
-        response = requests.get(url, headers=headers, timeout=30)
-        response.raise_for_status()
-        return BeautifulSoup(response.text, 'lxml')
-    except Exception as e:
-        logger.error(f"Error fetching Finviz stock page for {symbol}: {str(e)}")
-        return None
-
-@st.cache_data(ttl=86400)
-def get_finviz_news(symbol):
-    """Get news from Finviz"""
-    soup = get_finviz_stock_page(symbol)
-    if not soup:
-        return []
-    
-    try:
-        news_table = soup.find('table', class_='fullview-news-outer')
-        if not news_table:
-            return []
-        
-        news_items = []
-        for row in news_table.find_all('tr'):
-            date_td = row.find('td', class_='fullview-news-td')
-            title_td = row.find('td', class_='fullview-news-td', align='left')
-            
-            if date_td and title_td:
-                date_str = date_td.text.strip()
-                title = title_td.a.text.strip() if title_td.a else ""
-                link = title_td.a['href'] if title_td.a and 'href' in title_td.a.attrs else "#"
-                
-                if title:
-                    sentiment_label = analyze_sentiment(title)
-                    news_items.append({
-                        'title': title,
-                        'link': link,
-                        'sentiment': sentiment_label,
-                        'date': datetime.strptime(date_str, '%b-%d-%y %I:%M%p')
-                    })
-                    
-        return news_items[:5]  # Return only the 5 most recent news items
-    except Exception as e:
-        logger.error(f"Error parsing Finviz news for {symbol}: {str(e)}")
-        return []
-
-@st.cache_data(ttl=86400)
-def get_finviz_stock_info(symbol):
-    """Get detailed stock information from Finviz"""
-    soup = get_finviz_stock_page(symbol)
-    if not soup:
-        return None
-    
-    try:
-        info = {}
-        snapshot_table = soup.find('table', class_='snapshot-table2')
-        
-        if snapshot_table:
-            rows = snapshot_table.find_all('tr')
-            for row in rows:
-                cols = row.find_all('td')
-                for i in range(0, len(cols), 2):
-                    if i + 1 < len(cols):
-                        key = cols[i].text.strip()
-                        value = cols[i + 1].text.strip()
-                        info[key] = value
-        
-        # Extract and format required fields
-        market_cap_str = info.get('Market Cap', '0')
-        market_cap = parse_finviz_number(market_cap_str)
-        
-        return {
-            'symbol': symbol,
-            'sector': info.get('Sector', 'N/A'),
-            'industry': info.get('Industry', 'N/A'),
-            'exchange': info.get('Exchange', 'N/A'),
-            'market_cap': format_number(market_cap, prefix="$"),
-            'pe_ratio': info.get('P/E', 'N/A'),
-            'volume': parse_finviz_number(info.get('Volume', '0')),
-            'description': info.get('Description', 'Company information not available'),
-            'institutional_ownership': info.get('Inst Own', 'N/A'),
-            'institutional_count': info.get('Inst Trans', 'N/A')
-        }
-    except Exception as e:
-        logger.error(f"Error parsing Finviz stock info for {symbol}: {str(e)}")
-        return None
-
-def parse_finviz_number(value_str):
-    """Parse Finviz number format (e.g., 1.2B, 900K, etc.)"""
-    try:
-        if not value_str or value_str == '-':
-            return 0
-            
-        value_str = value_str.strip().replace(',', '')
-        match = re.match(r'^([\d.]+)([KMBT])?$', value_str)
-        
-        if not match:
-            return float(value_str)
-            
-        number, unit = match.groups()
-        number = float(number)
-        
-        multipliers = {
-            'K': 1e3,
-            'M': 1e6,
-            'B': 1e9,
-            'T': 1e12
-        }
-        
-        if unit:
-            number *= multipliers.get(unit, 1)
-            
-        return number
-    except Exception:
-        return 0
-
-@st.cache_data(ttl=86400)
-def get_finviz_price_history(symbol):
-    """Get price history from Finviz charts (if available)"""
-    try:
-        # This would need to be implemented if Finviz provides an API or reliable way to get historical data
-        # For now, we'll return a structured empty DataFrame to maintain compatibility
-        return pd.DataFrame(columns=['Open', 'High', 'Low', 'Close', 'Volume'])
-    except Exception as e:
-        logger.error(f"Error fetching price history for {symbol}: {str(e)}")
-        return None
                             symbols.append(symbol)
                     break
                 else:
