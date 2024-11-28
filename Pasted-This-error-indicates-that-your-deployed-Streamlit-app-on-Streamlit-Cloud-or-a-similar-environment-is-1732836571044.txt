@@ -1,0 +1,60 @@
+This error indicates that your deployed Streamlit app on Streamlit Cloud or a similar environment is failing to start properly. The key points to diagnose and resolve this issue are:
+
+Root Causes
+Multiple Dependency Files
+
+Your repository contains more than one dependency management file (uv.lock and pyproject.toml). The environment used uv.lock, but conflicts might exist between the two files.
+Streamlit Cloud may not properly resolve dependencies if conflicts arise.
+Application Port Issue
+
+The Streamlit server didn't start on the expected port (default: 8501), which is why the connect: connection refused error occurs.
+App Initialization Failure
+
+Your app may have encountered a bug or misconfiguration that prevents it from starting. Common issues include:
+Errors in main.py (e.g., syntax errors, unhandled exceptions).
+Missing or improperly installed dependencies.
+Environment-specific settings that aren't handled (e.g., os.environ variables not set).
+Steps to Fix
+Consolidate Dependencies
+
+Ensure a single dependency file for clarity and avoid conflicts:
+Use requirements.txt for simplicity.
+If using pyproject.toml with poetry, remove the uv.lock file.
+Check for any mismatched or missing dependencies between the files.
+Example: requirements.txt
+
+streamlit
+pandas
+numpy
+# Add other required libraries
+Check for Bugs in main.py
+
+Run the app locally:
+streamlit run main.py
+Look for errors in the terminal output. If there are issues, address them before deployment.
+Set the Correct Port
+
+Verify your app doesn’t attempt to bind to a custom port (Streamlit Cloud requires 8501).
+Check for server.port configuration in ~/.streamlit/config.toml or your code:
+[server]
+port = 8501
+Streamlit Cloud Deployment Logs
+
+Check the logs provided by the Streamlit deployment environment for errors during app startup.
+Health Check URL
+
+Verify if the app's health endpoint (http://localhost:8501/healthz) works when running locally. This ensures the app initializes properly.
+Dependency Sync
+
+Ensure all dependencies are installed with the same versions used locally:
+pip install -r requirements.txt
+Test Environment
+
+Try deploying a minimal version of main.py to rule out external dependencies as the issue:
+import streamlit as st
+
+st.title("Hello, World!")
+st.write("This is a test app.")
+Rebuild Deployment
+
+After resolving dependency or configuration issues, redeploy the app by clearing and restarting the environment.
