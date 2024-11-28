@@ -1,26 +1,4 @@
-import os
-import sys
 import streamlit as st
-import logging
-
-# Setup logging first
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-# Add error handling for deployment
-try:
-    st.set_page_config(
-        page_title="Small-Cap Stock Screener",
-        page_icon="📈",
-        layout="wide",
-        initial_sidebar_state="collapsed"
-    )
-except Exception as e:
-    st.error(f"Error initializing application: {str(e)}")
-    logger.error(f"Initialization error: {str(e)}")
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
@@ -37,23 +15,8 @@ from stock_utils import (
     calculate_technical_indicators
 )
 
-# Initialize session state
-if 'view' not in st.session_state:
-    st.session_state.view = "gainers"
-if 'selected_stock' not in st.session_state:
-    st.session_state.selected_stock = None
-if 'show_detail' not in st.session_state:
-    st.session_state.show_detail = False
-if 'chart_data' not in st.session_state:
-    st.session_state.chart_data = None
-if 'previous_view' not in st.session_state:
-    st.session_state.previous_view = None
-
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Constants for retry logic
@@ -81,6 +44,36 @@ def check_connection():
         return True
     except Exception:
         return False
+
+# Clear all caches at startup
+st.cache_data.clear()
+st.cache_resource.clear()
+
+# Page config must be the first Streamlit command
+st.set_page_config(
+    page_title="Small-Cap Stock Screener",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Load custom CSS
+css_path = os.path.join('assets', 'style.css')
+if os.path.exists(css_path):
+    with open(css_path) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+# Initialize session state
+if 'show_detail' not in st.session_state:
+    st.session_state.show_detail = False
+if 'selected_stock' not in st.session_state:
+    st.session_state.selected_stock = None
+if 'chart_data' not in st.session_state:
+    st.session_state.chart_data = None
+if 'previous_view' not in st.session_state:
+    st.session_state.previous_view = None
+if 'view' not in st.session_state:
+    st.session_state.view = "gainers"
 
 def reset_navigation_state():
     """Reset navigation state"""
@@ -401,14 +394,8 @@ def display_technical_analysis(indicators, price_history, info):
         price = indicators['Close'].iloc[-1]
         upper = indicators['BB_Upper'].iloc[-1]
         lower = indicators['BB_Lower'].iloc[-1]
-        bb_width = ((upper - lower) / indicators['BB_Middle'].iloc[-1]) * 100
-        st.markdown(f'''
-        **Bollinger Bands Analysis**
-        - Current Price: ${price:.2f}
-        - Upper Band: ${upper:.2f}
-        - Lower Band: ${lower:.2f}
-        - Band Width: {bb_width:.1f}%
-        ''')
+        bb_position = (price - lower) / (upper - lower) * 100
+        st.info(f"Position within Bands: {bb_position:.1f}%")
 
 def display_price_chart(indicators, price_history):
     """Display the price chart with moving averages and volume analysis"""
@@ -492,90 +479,56 @@ def display_analysis_summary(indicators, info, rsi_value):
 
 def display_technical_indicators(indicators):
     """Display technical indicators summary"""
-    if indicators is None:
-        st.warning("No indicator data available")
-        return
-        
-    # Create metrics for key indicators
-    col1, col2, col3 = st.columns(3)
+    st.subheader('Technical Indicators')
     
-    # RSI Status
+    # Get current values
+    current_price = indicators['Close'].iloc[-1]
+    ema_9 = indicators['EMA_9'].iloc[-1]
+    ema_20 = indicators['EMA_20'].iloc[-1]
+    ema_50 = indicators['EMA_50'].iloc[-1]
     rsi = indicators['RSI'].iloc[-1]
-    rsi_status = "Overbought" if rsi > 70 else "Oversold" if rsi < 30 else "Neutral"
-    with col1:
-        st.metric("RSI", f"{rsi:.2f}", rsi_status)
-    
-    # MACD Signal
     macd = indicators['MACD'].iloc[-1]
     signal = indicators['Signal'].iloc[-1]
-    macd_trend = "Bullish" if macd > signal else "Bearish"
-    with col2:
-        st.metric("MACD", f"{macd:.3f}", f"{macd_trend}")
+    vwap = indicators['VWAP'].iloc[-1]
     
-    # Volume Analysis
-    current_vol = indicators['Volume'].iloc[-1]
-    avg_vol = indicators['Volume_3D_Avg'].iloc[-1]
-    vol_change = ((current_vol / avg_vol) - 1) * 100
+    # Create metrics
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("EMA 9", f"${ema_9:.2f}", f"{((ema_9/current_price - 1) * 100):+.2f}%")
+        st.metric("EMA 20", f"${ema_20:.2f}", f"{((ema_20/current_price - 1) * 100):+.2f}%")
+    
+    with col2:
+        st.metric("EMA 50", f"${ema_50:.2f}", f"{((ema_50/current_price - 1) * 100):+.2f}%")
+        st.metric("VWAP", f"${vwap:.2f}", f"{((vwap/current_price - 1) * 100):+.2f}%")
+    
     with col3:
-        st.metric("Volume vs Avg", f"{vol_change:+.1f}%", 
-                 "Above Average" if vol_change > 0 else "Below Average")
+        st.metric("RSI", f"{rsi:.1f}", "Overbought" if rsi > 70 else "Oversold" if rsi < 30 else "Neutral")
+        st.metric("MACD", f"{macd:.3f}", f"{macd - signal:+.3f}")
 
-# Initialize app state and configuration
-try:
-    # Clear all caches at startup
-    st.cache_data.clear()
-    st.cache_resource.clear()
-    logger.info("Cache cleared successfully")
+def main():
+    """Main function to run the Streamlit application"""
+    if not check_connection():
+        st.error("Unable to connect to data service. Please check your internet connection.")
+        return
 
-    # Page config must be the first Streamlit command
-    st.set_page_config(
-        page_title="Small-Cap Stock Screener",
-        page_icon="📈",
-        layout="wide",
-        initial_sidebar_state="collapsed"
-    )
-    logger.info("Page configuration set successfully")
+    display_navigation()
 
-    # Load custom CSS
-    css_path = os.path.join('assets', 'style.css')
-    if os.path.exists(css_path):
-        with open(css_path) as f:
-            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
-
-    # Initialize session state
-    if 'show_detail' not in st.session_state:
-        st.session_state.show_detail = False
-    if 'selected_stock' not in st.session_state:
-        st.session_state.selected_stock = None
-    if 'chart_data' not in st.session_state:
-        st.session_state.chart_data = None
-    if 'previous_view' not in st.session_state:
-        st.session_state.previous_view = None
-    if 'view' not in st.session_state:
-        st.session_state.view = "gainers"
-
-except Exception as e:
-    logger.error(f"Error during application startup: {str(e)}")
-    st.error("An error occurred during application startup. Please refresh the page.")
-
-# Main application code
-if __name__ == "__main__":
-    try:
-        # Display navigation
-        display_navigation()
-        
-        # Show stock data based on view
-        if st.session_state.show_detail and st.session_state.selected_stock:
-            display_stock_details(st.session_state.selected_stock)
-        else:
-            if st.session_state.view == "gainers":
-                df = safe_data_fetch(get_finviz_gainers)
-                if df is not None:
-                    display_stock_data(df, "Top Gainers")
+    if st.session_state.show_detail and st.session_state.selected_stock:
+        display_stock_details(st.session_state.selected_stock)
+    else:
+        if st.session_state.view == "gainers":
+            gainers_df = safe_data_fetch(get_finviz_gainers)
+            if gainers_df is not None:
+                display_stock_data(gainers_df, "Top Gainers")
             else:
-                df = safe_data_fetch(get_finviz_losers)
-                if df is not None:
-                    display_stock_data(df, "Top Losers")
-    except Exception as e:
-        logger.error(f"Application error: {str(e)}")
-        st.error("An error occurred. Please refresh the page.")
+                st.error("Unable to fetch gainers data. Please try again later.")
+        else:
+            losers_df = safe_data_fetch(get_finviz_losers)
+            if losers_df is not None:
+                display_stock_data(losers_df, "Top Losers")
+            else:
+                st.error("Unable to fetch losers data. Please try again later.")
+
+if __name__ == "__main__":
+    main()

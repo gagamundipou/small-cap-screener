@@ -8,3 +8,13 @@ textblob==0.17.1
 lxml==4.9.3
 requests==2.31.0
 python-dotenv==1.0.0
+beautifulsoup4
+lxml
+numpy
+pandas
+plotly
+python-dotenv
+requests
+streamlit
+textblob
+yfinance
